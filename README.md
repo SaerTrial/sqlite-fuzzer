@@ -67,6 +67,15 @@ The last two metrics were not accessible by students until my project was evalua
 This project only evaluates one's fuzzer with 100.000 inputs. In case that a fuzzer cannot spawn this number of fuzzing inputs within 30 mins, inputs that have been generated so far are considered. This process repeats totally three times, and the best result will be taken.
 
 
+## My implementation and approach
+TODO
+
+## Improvement
+what goes badly with my approach?
+
+what about logic vuls? How do academics deal with them? What are my thoughts?
+
+
 
 
 
