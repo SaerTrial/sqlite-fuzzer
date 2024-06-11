@@ -46,7 +46,7 @@ After a container created from this image is spinned up, access to http://localh
 ```
 sudo apt-get update
 sudo apt-get install -y python3.10 python3-pip python3.10-dev python3.10-distutils unzip nano curl libgraphviz-dev
-pip install fuzzingbook jupyterlab gcovr matplotlib
+pip install fuzzingbook gcovr matplotlib
 cd project1
 make clean && make
 python3.10 run.py 500
