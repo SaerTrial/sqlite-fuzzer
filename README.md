@@ -53,7 +53,6 @@ python3.10 run.py 500
 ```
 
 
-
 ## Evaluation criteria
 This project is evaluated in three main metrics:
 - branch coverage in sqilite3.c
@@ -68,7 +67,12 @@ This project only evaluates one's fuzzer with 100.000 inputs. In case that a fuz
 
 
 ## My implementation and approach
-TODO
+
+To keep this repo description short and simple, I have written a [post](https://saertrial.github.io./fuzzing/database/2024/06/12/sqlite-fuzzer/) in my personal blog to detail the content of this section.
+
+## TODO
+- Building an evaluator and presenting evaluation results
+- Trying different fuzzing approaches, e.g., concolic fuzzing
 
 ## Improvement
 what goes badly with my approach?
