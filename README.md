@@ -53,6 +53,14 @@ make clean && make
 python3.10 run.py --rounds 10 --plot-every-x 1000 100000
 ```
 
+### Getting a plot about branch coverage
+```
+python3.10 evaluator.py
+```
+
+This script will collect all coverage files generated from `python3.10 run.py --rounds 10 --plot-every-x 1000 100000`, and draw a diagram that represents the growth of branch coverage by the number of inputs. Moreover, this diagram consists of a blue line and orange-covered areas; The blue line represents median values while orange zones indicates low and upper bounds for a median value. For example,  running a 10-round experiment will generate 10 sets of data about branch coverage, and a median value is taken at the certain column (represents the number of inputs being ran so far) from these 10 rounds. Assuming that one would like to test 1000 inputs with 10 rounds, the total number of median values is 1000 as well. The low and upper bounds are computed based on a current median value for a certain column. 
+
+
 
 ## Evaluation criteria
 This project is evaluated in three main metrics:
