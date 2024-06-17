@@ -47,6 +47,7 @@ After a container created from this image is spinned up, access to http://localh
 sudo apt-get update
 sudo apt-get install -y python3.10 python3-pip python3.10-dev python3.10-distutils unzip nano curl libgraphviz-dev
 pip install fuzzingbook gcovr matplotlib
+sudo $(which python3) -m pip install gcovr
 cd project1
 make clean && make
 python3.10 run.py 500
@@ -63,7 +64,7 @@ The last two metrics were not accessible by students until my project was evalua
 
 ### Limited number of inputs to be evaluated
 
-This project only evaluates one's fuzzer with 100.000 inputs. In case that a fuzzer cannot spawn this number of fuzzing inputs within 30 mins, inputs that have been generated so far are considered. This process repeats totally three times, and the best result will be taken.
+This project only evaluates one's fuzzer with 100000 inputs. In case that a fuzzer cannot spawn this number of fuzzing inputs within 30 mins, inputs that have been generated so far are considered. This process repeats totally three times, and the best result will be taken.
 
 
 ## My implementation and approach

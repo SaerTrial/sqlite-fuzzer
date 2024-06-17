@@ -3,10 +3,14 @@ import random
 import csv
 import argparse
 import os
+import pickle
+import glob
 
 import matplotlib.pyplot as plt
 
-from fuzzer import Fuzzer
+from project1.fuzzer import Fuzzer
+
+DIR = os.path.dirname(os.path.realpath(__file__))
 
 def plot(x, y):
     plt.plot(x, y, linestyle='-')
@@ -65,7 +69,10 @@ class Experiment:
         print("Done.")
 
     def generate_and_run(self):
-        self.run(self.fuzzer.fuzz_one_input())
+        try:
+            self.run(self.fuzzer.fuzz_one_input())
+        except OSError:
+            pass
     
     def generate_and_run_k_plot_coverage(self, k, plot_every_x):
         self.clean()
@@ -81,19 +88,32 @@ class Experiment:
 
         # Do one final coverage measurment (or the only one, if plot_every_x == -1).
         cov.append(self.get_coverage())
+        
+        return cov
 
-        plot(x=list(range(len(cov))), y=cov)
+        # plot(x=list(range(len(cov))), y=cov)
+    
+    def run_multi_experiments(self, runs, input_size, plot_every_x):
+        
+        for i in range(runs):
+            cur_cov = self.generate_and_run_k_plot_coverage(input_size, plot_every_x)
+            with open(f'cov_{i}.pkl', 'wb') as f:
+                pickle.dump(cur_cov, f)
+
+   
 
 def main():
     parser = argparse.ArgumentParser(description='SQL fuzzer and coverage plotter')
     parser.add_argument('runs', type=int, help='How many inputs should be generated and run?')
     parser.add_argument('--plot-every-x', default=-1, type=int, help='Coverage will be measured after plot_every_x. (default:-1, i.e. there is only one coverage measurement at the end)')
+    parser.add_argument('--rounds', default=1, type=int, help='how many rounds of experiment you would like to run?')    
+
     args = parser.parse_args()
-    runs = args.runs
-    plot_every_x = args.plot_every_x
 
     experiment = Experiment()
-    experiment.generate_and_run_k_plot_coverage(runs, plot_every_x)
+    # experiment.generate_and_run_k_plot_coverage(runs, plot_every_x)
+    experiment.run_multi_experiments(args.rounds, args.runs, args.plot_every_x)
+
 
 if __name__ == "__main__":
     main()

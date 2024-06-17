@@ -56,11 +56,11 @@ class Fuzzer:
     def fuzz(self):
         random.seed()
         
-        if self.counter < 200:
+        if self.counter < 10000:
             cur_fuzzer = self.create_fuzzer
-        elif self.counter >= 200 and self.counter < 1000:
+        elif self.counter >= 10000 and self.counter < 30000:
             cur_fuzzer = self.insert_fuzzer
-        elif self.counter >= 1000 and self.counter < 5000:
+        elif self.counter >= 30000 and self.counter < 70000:
             cur_fuzzer = self.select_fuzzer
         else:
             cur_fuzzer = self.general_fuzzer
