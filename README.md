@@ -50,7 +50,7 @@ pip install fuzzingbook gcovr matplotlib
 sudo $(which python3) -m pip install gcovr
 cd project1
 make clean && make
-python3.10 run.py 500
+python3.10 run.py --rounds 10 --plot-every-x 1000 100000
 ```
 
 
@@ -72,13 +72,17 @@ This project only evaluates one's fuzzer with 100000 inputs. In case that a fuzz
 To keep this repo description short and simple, I have written a [post](https://saertrial.github.io./fuzzing/database/2024/06/12/sqlite-fuzzer/) in my personal blog to detail the content of this section.
 
 ## TODO
-- Building an evaluator and presenting evaluation results
+- ~~Building an evaluator and presenting evaluation results about branch coverage~~
+- Consider a further evaluator to validate if this approach is robust to look for potential bugs and demonstrate diversity of generated inputs
 - Trying different fuzzing approaches, e.g., concolic fuzzing
 
 ## Improvement
-what goes badly with my approach?
+- what goes badly with my approach?
+    - while this approach mostly guarantees validity of generated inputs, the time spent on generation of 100000 inputs is too long
+    - sort of "downgrade" this approach towards more randomness since emitting invalid inputs could be effecient to touch edge cases during development
+- what about logic vuls? How do academics deal with them? What are my thoughts?
+    - TODO
 
-what about logic vuls? How do academics deal with them? What are my thoughts?
 
 
 
