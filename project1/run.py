@@ -8,7 +8,7 @@ import glob
 
 import matplotlib.pyplot as plt
 
-from project1.fuzzer import Fuzzer
+from fuzzer import Fuzzer
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 

@@ -81,7 +81,9 @@ To keep this repo description short and simple, I have written a [post](https://
 
 ## TODO
 - ~~Building an evaluator and presenting evaluation results about branch coverage~~
-- Consider a further evaluator to validate if this approach is robust to look for potential bugs and demonstrate diversity of generated inputs
+- Understanding why some functions have not been covered yet, and attempting to craft satisfied inputs reaching to them.
+- Testing different setup in fuzzing stages, such as a smaller number of "create" commands.
+- Considering a further evaluator to validate if this approach is robust to look for potential bugs and demonstrate diversity of generated inputs
 - Trying different fuzzing approaches, e.g., concolic fuzzing
 
 ## Improvement
