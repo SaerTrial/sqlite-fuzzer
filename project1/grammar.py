@@ -5,9 +5,8 @@
 
 from fuzzingbook.Grammars import is_valid_grammar,trim_grammar, opts
 import string
-from fuzzingbook.Grammars import srange, extend_grammar
 from fuzzingbook.GeneratorGrammarFuzzer import GeneratorGrammarFuzzer
-from typing import Callable, Set, List, Dict, Optional, Iterator, Any, Union, Tuple, cast
+
 import random
 import copy as copy
 
@@ -29,7 +28,7 @@ BinaryOp = ['=','!=','>=','<=','>','<']
 data_type = ['integer', 'real', 'text', 'blob']
 
 CONTROLLED_CAPACITY = 20
-SICK_CONTROLLED_CAPACITY = 512
+SICK_CONTROLLED_CAPACITY = 128
 def get_one_literal():
     chosen = random.choice(Literal)
     if isinstance(chosen, str):
@@ -79,23 +78,14 @@ def return_valid_table():
     if len(VALID_TABLE) == 0:
         return False
 
-    #count = random.randint(1,len(VALID_TABLE))
-
-    # if count == 1:
-    #     return random.choice(list(VALID_TABLE.keys()))
-
     return random.choice(list(VALID_TABLE.keys()))
 
-    #return ",".join(random.sample(list(VALID_TABLE.keys()), count))
 
-    # return random.choice(list(VALID_TABLE.keys()))
 
-# OPTIONAL_TABLE = [f"table_{name}" for name in [*string.ascii_lowercase[:6]]]
 OPTIONAL_TABLE = [f"table_{name}" for name in range(CONTROLLED_CAPACITY)]
 
 # column management
 
-# VALID_COLUMN = [*string.ascii_lowercase[:6]]
 VALID_COLUMN = [f"column_{name}" for name in range(CONTROLLED_CAPACITY)]
 
 def result_column(at_least_one = False):
@@ -474,13 +464,6 @@ def alter_handler_4():
             VALID_COLUMN.remove(c_name)
         VALID_TABLE[name].remove(item)
 
-        # else:
-        #     c_name = item 
-        #     VALID_COLUMN.remove(c_name)
-        #     VALID_TABLE[name].remove(c_name)
-   
-
-
     return [name,c_name]
 
 
@@ -816,37 +799,247 @@ WHERE {one_col} IN (SELECT {one_col} FROM {cte_table_name});
 def create_indexed_by_handler():
     table_name = "indexed_by_" + random.choice(OPTIONAL_TABLE)
     if random.choice([True, False]):
-        return [table_name,table_name,table_name,table_name, f'idx_Price_{table_name}',table_name, table_name,f'idx_Price_{table_name}']
+        return [table_name,table_name,table_name,table_name, f'idx_Price_{table_name}',table_name, table_name,f'idx_Price_{table_name}', table_name]
     else:
-        return [table_name,table_name,table_name,table_name,f'idx_Price_{table_name}',table_name, table_name,f'idx_PriceError_{table_name}']
+        return [table_name,table_name,table_name,table_name,f'idx_Price_{table_name}',table_name, table_name,f'idx_PriceError_{table_name}', table_name]
  
+def aggregate_scalar_funcs_handler1():
+    if len(VALID_TABLE) > 0:
+        table_name = random.choice(list(VALID_TABLE.keys()))
+        sub_columns = [column for column, _ in VALID_TABLE[table_name]]
+    else:
+        table_name = random.choice(OPTIONAL_TABLE)
+        sub_columns = random.sample(VALID_COLUMN, random.randint(1, len(VALID_COLUMN)))
+
+    return [None, random.choice(sub_columns), table_name]    
+
+def aggregate_scalar_funcs_handler2():
+    if len(VALID_TABLE) > 0:
+        table_name = random.choice(list(VALID_TABLE.keys()))
+        sub_columns = [column for column, _ in VALID_TABLE[table_name]]
+    else:
+        table_name = random.choice(OPTIONAL_TABLE)
+        sub_columns = random.sample(VALID_COLUMN, random.randint(1, len(VALID_COLUMN)))
+
+    return [random.choice(sub_columns), None, table_name]    
+
+def aggregate_scalar_funcs_handler3():
+    if len(VALID_TABLE) > 0:
+        table_name = random.choice(list(VALID_TABLE.keys()))
+        sub_columns = [column for column, _ in VALID_TABLE[table_name]]
+    else:
+        table_name = random.choice(OPTIONAL_TABLE)
+        sub_columns = random.sample(VALID_COLUMN, random.randint(1, len(VALID_COLUMN)))
+
+    return [random.choice(sub_columns), None, None, table_name]    
+
+
 
 grammar  = {
-"<start>": ["<create_table_stmt>", "<select_core>", "<insert_stmt>",
-               "<update_stmt>", 
-                "<alter_table_stmt>",
-                "<create_trigger_stmt>",
-                "<drop_trigger_stmt>",
-                "<drop_view_stmt>",
-                "<create_view_stmt>",
-                "<create_index_stmt>",
-                "<drop_index_stmt>",
-                "<drop_table_stmt>",
-                "<pragma_stmt>",
-                "<delete_stmt>",
-                "<reindex_stmt>",
-                "<vacuum_stmt>",
-                "<savepoint_stmt>",
-                "<release_stmt>",
-                "<analyze_stmt>",
-                "<create_virtual_table_stmt>",
-                "<explain_stmt>",
-                "<maybe_crash_stmt>",
-                "<json_stmt>",
-                "<create_database>",
-                "<attach_stmt>",
-                "<detach_stmt>",
-                "<cte_stmt>"],
+"<start>": [
+            '<initial_stage>',
+            '<busy_stage>',
+            '<post_stage>',
+            '<misc>',
+            '<brute_force_stage>'],
+
+'<initial_stage>':[
+    "<create_table_stmt>", 
+    "<create_trigger_stmt>",
+    "<create_view_stmt>",
+    "<create_index_stmt>",
+    "<cte_stmt>",
+    "<create_virtual_table_stmt>",
+    "<json_stmt>",
+],
+
+'<busy_stage>':[
+    "<select_core>", 
+    "<insert_stmt>",
+    "<update_stmt>", 
+    "<alter_table_stmt>",
+    "<reindex_stmt>",
+    "<delete_stmt>",
+    "<window_stmt>",
+    "<aggregate_scalar_func>",
+],
+
+'<post_stage>':[
+    "<drop_index_stmt>",
+    "<drop_table_stmt>",
+    "<drop_trigger_stmt>",
+    "<drop_view_stmt>", 
+],
+
+'<brute_force_stage>':[
+    "<maybe_crash_stmt>",
+    "<maybe_error_stmt>",
+],
+
+'<misc>':[
+    "<vacuum_stmt>",
+    "<savepoint_stmt>",
+    "<release_stmt>",
+    "<analyze_stmt>",
+    "<explain_stmt>",
+    "<create_database>",
+    "<attach_stmt>",
+    "<detach_stmt>",
+    "<rollback_stmt>",
+    ### newly added to misc stage
+    "<initial_stage>",
+    "<busy_stage>",
+    "<post_stage>"
+],
+
+
+"<aggregate_scalar_func>":[
+"""
+CREATE TABLE aggregate_scalar_<fixed_table_name>(ID, NAME, MARKS, AGE);
+INSERT INTO aggregate_scalar_<fixed_table_name>(ID, NAME, MARKS, AGE) VALUES 
+(1, 'Harsh', 90, 19),
+(2, 'Suersh', 50, 20),
+(3, 'Patik', 80, 19),
+(4, 'Dhanraj', 95, 21),
+(5, 'Mike', 85, 22);
+SELECT AVG(MARKS) AS AvgMarks FROM aggregate_scalar_<fixed_table_name>; 
+SELECT COUNT(*) AS NumStudents FROM aggregate_scalar_<fixed_table_name>;
+SELECT COUNT(DISTINCT AGE) AS NumStudents FROM aggregate_scalar_<fixed_table_name>;
+SELECT FIRST(MARKS) AS MarksFirst FROM aggregate_scalar_<fixed_table_name>;
+SELECT LAST(column_name) FROM aggregate_scalar_<fixed_table_name>;
+SELECT MAX(MARKS) AS MaxMarks FROM aggregate_scalar_<fixed_table_name>;
+SELECT MIN(MARKS) AS MinMarks FROM aggregate_scalar_<fixed_table_name>;
+SELECT UCASE(NAME) FROM aggregate_scalar_<fixed_table_name>;
+SELECT LCASE(NAME) FROM aggregate_scalar_<fixed_table_name>;
+SELECT MID(NAME,1,4) FROM aggregate_scalar_<fixed_table_name>; 
+SELECT LENGTH(NAME) FROM aggregate_scalar_<fixed_table_name>;
+SELECT ROUND(MARKS,0) FROM aggregate_scalar_<fixed_table_name>; 
+SELECT NAME, NOW() AS DateTime FROM aggregate_scalar_<fixed_table_name>; 
+SELECT NAME, FORMAT(Now(),'YYYY-MM-DD') AS Date FROM aggregate_scalar_<fixed_table_name>; 
+SELECT typeof(500), typeof('NAME'), typeof(120.1), typeof(x'deadbeef') FROM aggregate_scalar_<fixed_table_name>; 
+SELECT abs(-5);
+""",
+"SELECT <aggregate_scalar_funcs>",
+],
+
+"<aggregate_scalar_funcs>":[
+("<aggregate_scalar_funcs_type> (<expr>) FROM <table_name>;", opts(post=lambda t1,t2, t3: aggregate_scalar_funcs_handler1())),
+("ROUND (<expr>, <literal_value>) FROM <table_name>;",opts(post=lambda t1,t2, t3: aggregate_scalar_funcs_handler2())),
+("MID (<expr>, <literal_value>, <literal_value>) FROM <table_name>;", opts(post=lambda t1,t2,t3,t4: aggregate_scalar_funcs_handler3())),
+],
+
+
+"<aggregate_scalar_funcs_type>":[
+    "abs",
+    "AVG",
+    "MIN",
+    "MAX",
+    "typeof",
+    "LENGTH"
+],
+
+
+"<maybe_error_stmt>":[
+    "<alter_rename_error>",
+    "<datetime_error>",
+    "<json_error>",
+    "<if_not_empty_error>",
+    "<expr_order_by_aggregate_error>",
+],
+
+"<expr_order_by_aggregate_error>":[
+"""
+CREATE TABLE aggregate_error_<fixed_table_name>(a, b);
+INSERT INTO aggregate_error_<fixed_table_name> VALUES('a', 'one'),
+                     ('a', 'two'),
+                     ('a', 'three'),
+                     ('b', 'four'),
+                     ('c', 'five'),
+                     ('c', 'six');
+
+SELECT a   AS a,
+    rank( ORDER BY a ) OVER win    AS rank,
+FROM aggregate_error_<fixed_table_name>;
+"""
+],
+
+
+"<if_not_empty_error>":[
+"""CREATE TABLE empty_error_<fixed_table_name> (column1 DEFAULT NULL NOT NULL);
+INSERT INTO empty_error_<fixed_table_name>(column1) VALUES(NULL)"""
+],
+
+"<json_error>":[
+"""
+CREATE TABLE json_error_<fixed_table_name> (id INTEGER PRIMARY KEY, data JSON);  INSERT INTO json_error_<fixed_table_name> (id, data) VALUES (1, json_encode({
+    "id": "#settingsResult",
+  "payload": "<form id=\"pwd_change_frm\\" action=\"post\">\n    }));
+"""
+],
+
+"<datetime_error>":[
+"""
+create table datetime_error_<fixed_table_name> (name varchar(25), myDate DATETIME)
+insert into datetime_error_<fixed_table_name> (name,mydate) Values ('fred',''20000-01-01 10:00:00'')
+"""
+],
+
+
+"<alter_rename_error>":[
+"""
+CREATE TABLE rename_error_<fixed_table_name>(a,b,c); 
+PRAGMA writable_schema=OFF;
+ALTER TABLE rename_error_<fixed_table_name> RENAME TO non_exist_<fixed_table_name>;
+"""
+],
+
+"<window_stmt>":[
+"""
+CREATE TABLE window1_<fixed_table_name>(x INTEGER PRIMARY KEY, y TEXT);
+INSERT INTO window1_<fixed_table_name> VALUES (1, 'aaa'), (2, 'ccc'), (3, 'bbb');
+SELECT x, y, row_number() OVER (ORDER BY y) AS row_number FROM window1_<fixed_table_name> ORDER BY x;
+
+SELECT x, y, row_number() OVER win1, rank() OVER win2
+FROM window1_<fixed_table_name>
+WINDOW win1 AS (ORDER BY y RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW),
+       win2 AS (PARTITION BY y ORDER BY x) ORDER BY x;
+""",
+"""
+CREATE TABLE window2_<fixed_table_name>(a, b);
+INSERT INTO window2_<fixed_table_name> VALUES('a', 'one'),
+                     ('a', 'two'),
+                     ('a', 'three'),
+                     ('b', 'four'),
+                     ('c', 'five'),
+                     ('c', 'six');
+SELECT a                        AS a,
+       row_number() OVER win    AS row_number,
+       rank() OVER win          AS rank,
+       dense_rank() OVER win    AS dense_rank,
+       percent_rank() OVER win  AS percent_rank,
+       cume_dist() OVER win     AS cume_dist
+FROM window2_<fixed_table_name>
+WINDOW win AS (ORDER BY a);
+
+SELECT a                        AS a,
+       b                        AS b,
+       ntile(2) OVER win        AS ntile_2,
+       ntile(4) OVER win        AS ntile_4
+FROM window2_<fixed_table_name>
+WINDOW win AS (ORDER BY a);
+
+SELECT b                          AS b,
+       lead(b, 2, 'n/a') OVER win AS lead,
+       lag(b) OVER win            AS lag,
+       first_value(b) OVER win    AS first_value,
+       last_value(b) OVER win     AS last_value,
+       nth_value(b, 3) OVER win   AS nth_value_3
+FROM window2_<fixed_table_name>
+WINDOW win AS (ORDER BY b ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW);
+"""
+
+],
+
 
 '<create_database>':[
     (' ', opts(pre=lambda: "CREATE DATABASE " + random.choice(OPTIONAL_DATABASE) + ";")),
@@ -921,7 +1114,35 @@ grammar  = {
     '<select_multi_columns>',
     '<select_join>',
     '<select_collate>',
+    '<select_date_time>',
+    '<select_sub_query>',
+
 ],
+
+'<select_sub_query>':[
+"""
+CREATE TABLE sub_query_<fixed_table_name> (ProductID INTEGER PRIMARY KEY, ProductName TEXT, CategoryID INTEGER, Price REAL); 
+INSERT INTO sub_query_<fixed_table_name>(ProductID, ProductName, CategoryID, Price) VALUES(1, 'Chais', 1, 20.65); 
+INSERT INTO sub_query_<fixed_table_name>(ProductID, ProductName, CategoryID, Price) VALUES(2, 'Chang', 1, 19.20); 
+INSERT INTO sub_query_<fixed_table_name>(ProductID, ProductName, CategoryID, Price) VALUES(3, 'Aniseed Syrup', 2, 6.87); 
+CREATE TABLE sub_query2_<fixed_table_name> (CategoryID INTEGER PRIMARY KEY, CategoryName TEXT, Description TEXT); 
+INSERT INTO sub_query2_<fixed_table_name>(CategoryID, CategoryName, Description) VALUES(1, 'Chais123', '123'); 
+INSERT INTO sub_query2_<fixed_table_name>(CategoryID, CategoryName, Description) VALUES(2, 'Chais456', '456'); 
+INSERT INTO sub_query2_<fixed_table_name>(CategoryID, CategoryName, Description) VALUES(3, 'Chais789', '789'); 
+SELECT ProductID, ProductName, CategoryID FROM sub_query_<fixed_table_name> WHERE CategoryID = ( SELECT <select_sub_query_column> FROM sub_query2_<fixed_table_name> WHERE Description = '123');
+"""
+],
+
+'<select_sub_query_column>':[
+    'CategoryID, CategoryName',
+    'CategoryID'
+],
+
+
+'<select_date_time>':[
+    "SELECT TIME('now')  || '' || DATE('now');"
+],
+
 
 '<select_collate>':[
     ('', opts(pre=select_collate_handler)),
@@ -938,45 +1159,34 @@ grammar  = {
 ],
 
 '<select_core_avg_sum>':[
-    "CREATE TABLE test_avg(trackid INTEGER PRIMARY KEY, name TEXT, albumid INTEGER, milliseconds REAL); INSERT INTO test_avg(trackid, name, albumid, milliseconds) VALUES(1, 'test1', 4, 20.65); INSERT INTO test_avg(trackid, name, albumid, milliseconds) VALUES(2, 'test2', 5, 30.22); SELECT round(avg(test),1) FROM (SELECT SUM(milliseconds) as test FROM test_avg GROUP BY albumid ) ;",
+    "CREATE TABLE test_avg(trackid INTEGER PRIMARY KEY, name TEXT, albumid INTEGER, milliseconds REAL); INSERT INTO test_avg(trackid, name, albumid, milliseconds) VALUES(1, 'test1', 4, 20.65); INSERT INTO test_avg(trackid, name, albumid, milliseconds) VALUES(2, 'test2', 5, 30.22); SELECT round(avg(test),1) FROM (SELECT SUM(milliseconds) as test FROM test_avg GROUP BY albumid ) ; ",
 ],
 
 '<select_core_inner_join>':[
-    """
-CREATE TABLE t1(ProductID INTEGER PRIMARY KEY, ProductName TEXT, CategoryID INTEGER, Price REAL); 
-INSERT INTO t1(ProductID, ProductName, CategoryID, Price) VALUES(1, 'Chais', 1, 20.65); 
-INSERT INTO t1(ProductID, ProductName, CategoryID, Price) VALUES(2, 'Chang', 1, 19.20); 
-INSERT INTO t1(ProductID, ProductName, CategoryID, Price) VALUES(3, 'Aniseed Syrup', 2, 6.87); 
-CREATE TABLE t2(CategoryID INTEGER PRIMARY KEY, CategoryName TEXT, Description TEXT); 
-INSERT INTO t2(CategoryID, CategoryName, Description) VALUES(1, 'Chais123', '123'); 
-INSERT INTO t2(CategoryID, CategoryName, Description) VALUES(2, 'Chais456', '456'); 
-INSERT INTO t2(CategoryID, CategoryName, Description) VALUES(3, 'Chais789', '789'); 
-SELECT ProductID, ProductName, CategoryName FROM t1 INNER JOIN t2 ON t1.CategoryID = t2.CategoryID;
-""",
 """
-CREATE TABLE t3(ProductID INTEGER PRIMARY KEY, ProductName TEXT, CategoryID INTEGER, Price REAL); 
-INSERT INTO t3(ProductID, ProductName, CategoryID, Price) VALUES(1, 'Chais', 1, 20.65); 
-INSERT INTO t3(ProductID, ProductName, CategoryID, Price) VALUES(2, 'Chang', 1, 19.20); 
-INSERT INTO t3(ProductID, ProductName, CategoryID, Price) VALUES(3, 'Aniseed Syrup', 2, 6.87); 
-CREATE TABLE t4(CategoryID INTEGER PRIMARY KEY, CategoryName TEXT, Description TEXT); 
-INSERT INTO t4(CategoryID, CategoryName, Description) VALUES(1, 'Chais123', '123'); 
-INSERT INTO t4(CategoryID, CategoryName, Description) VALUES(2, 'Chais456', '456'); 
-INSERT INTO t4(CategoryID, CategoryName, Description) VALUES(3, 'Chais789', '789'); 
-SELECT ProductID, ProductName, CategoryName FROM t3 INNER JOIN t4 USING (CategoryID);
-""",
-
+CREATE TABLE inner_join_<fixed_table_name>(ProductID INTEGER PRIMARY KEY, ProductName TEXT, CategoryID INTEGER, Price REAL); 
+INSERT INTO inner_join_<fixed_table_name>(ProductID, ProductName, CategoryID, Price) VALUES(1, 'Chais', 1, 20.65); 
+INSERT INTO inner_join_<fixed_table_name>(ProductID, ProductName, CategoryID, Price) VALUES(2, 'Chang', 1, 19.20); 
+INSERT INTO inner_join_<fixed_table_name>(ProductID, ProductName, CategoryID, Price) VALUES(3, 'Aniseed Syrup', 2, 6.87); 
+CREATE TABLE inner2_join_<fixed_table_name>(CategoryID INTEGER PRIMARY KEY, CategoryName TEXT, Description TEXT); 
+INSERT INTO inner2_join_<fixed_table_name>(CategoryID, CategoryName, Description) VALUES(1, 'Chais123', '123'); 
+INSERT INTO inner2_join_<fixed_table_name>(CategoryID, CategoryName, Description) VALUES(2, 'Chais456', '456'); 
+INSERT INTO inner2_join_<fixed_table_name>(CategoryID, CategoryName, Description) VALUES(3, 'Chais789', '789'); 
+SELECT ProductID, ProductName, CategoryName FROM inner_join_<fixed_table_name> INNER JOIN inner2_join_<fixed_table_name> ON inner_join_<fixed_table_name>.CategoryID = inner2_join_<fixed_table_name>.CategoryID;
+SELECT "text" + 2 ;
+"""
 ],
 
 '<select_core_having>':[
     """
-    CREATE TABLE test_having(ProductID INTEGER PRIMARY KEY, ProductName TEXT, CategoryID INTEGER, Price REAL); 
-    INSERT INTO test_having(ProductID, ProductName, CategoryID, Price) VALUES(1, 'Chais', 1, 20.65); 
-    INSERT INTO test_having(ProductID, ProductName, CategoryID, Price) VALUES(2, 'Chang', 1, 19.20); 
-    INSERT INTO test_having(ProductID, ProductName, CategoryID, Price) VALUES(3, 'Aniseed Syrup', 2, 6.87); 
+    CREATE TABLE test_having_<fixed_table_name>(ProductID INTEGER PRIMARY KEY, ProductName TEXT, CategoryID INTEGER, Price REAL); 
+    INSERT INTO test_having_<fixed_table_name>(ProductID, ProductName, CategoryID, Price) VALUES(1, 'Chais', 1, 20.65); 
+    INSERT INTO test_having_<fixed_table_name>(ProductID, ProductName, CategoryID, Price) VALUES(2, 'Chang', 1, 19.20); 
+    INSERT INTO test_having_<fixed_table_name>(ProductID, ProductName, CategoryID, Price) VALUES(3, 'Aniseed Syrup', 2, 6.87); 
     SELECT 
         ProductID,
         SUM(Price) AS Price
-    FROM test_having
+    FROM test_having_<fixed_table_name>
     GROUP BY Price
     HAVING SUM(Price) > 10;
     """
@@ -1060,11 +1270,10 @@ SELECT ProductID, ProductName, CategoryName FROM t3 INNER JOIN t4 USING (Categor
     # complex creation
     "CREATE TABLE contact_groups(contact_id INTEGER, group_id INTEGER, PRIMARY KEY (contact_id, group_id), FOREIGN KEY (contact_id) REFERENCES contacts (contact_id) ON DELETE CASCADE ON UPDATE NO ACTION, FOREIGN KEY (group_id) REFERENCES groups (group_id) ON DELETE CASCADE ON UPDATE NO ACTION);",
     "<create_table_col_dependent_expr>",
-    # 'CREATE <create_table_stmt_1> TABLE <create_table_stmt_2> <table_name> <create_table_stmt_3>'
 ],
 
 '<create_table_col_dependent_expr>':["""
-CREATE TABLE col_dependent_expr_<table_name>( 
+CREATE TABLE col_dependent_expr_<fixed_table_name>( 
   buy_id INTEGER NOT NULL, 
   stock_id INTEGER DEFAULT 1, 
   investor_id INTEGER DEFAULT 1, 
@@ -1164,19 +1373,30 @@ CREATE TABLE col_dependent_expr_<table_name>(
 
 "<column_name>": [""],
 "<update_stmt_or>": [ "", "OR ROLLBACK" , "OR ABORT" , "OR REPLACE" , "OR FAIL" , "OR IGNORE"],
+
 "<update_stmt_where>" : ["", "WHERE <expr>" ],
 
-
 '<alter_table_stmt>':[
+    '<alter_table_stmt_rename>',
+    '<alter_table_stmt_add>',
+    '<alter_table_stmt_drop>',
+],
+
+'<alter_table_stmt_rename>':[
     ('ALTER TABLE <table_name> RENAME TO <new_table_name>', opts(post=lambda table_name, new_name: alter_handler_1())), 
     ('ALTER TABLE <table_name> RENAME <column_name> TO <new_column_name>',opts(post=lambda table_name, c1, c2: alter_handler_2())), 
     ('ALTER TABLE <table_name> RENAME COLUMN <column_name> TO <new_column_name>', opts(post=lambda table_name, c1, c2: alter_handler_2())),
+],
+
+'<alter_table_stmt_add>':[
     ('ALTER TABLE <table_name> ADD <column_def>', opts(post=lambda name,d:alter_handler_3())),
     ('ALTER TABLE <table_name> ADD COLUMN <column_def>',opts(post=lambda name,d:alter_handler_3())),
+],
+
+'<alter_table_stmt_drop>':[
     ('ALTER TABLE <table_name> DROP <column_def>', opts(post=lambda name, c:alter_handler_4())),
     ('ALTER TABLE <table_name> DROP COLUMN <column_def>',opts(post=lambda name, c:alter_handler_4())),
 ],
-
 
 '<drop_table_stmt>':[
     'DROP TABLE <table_name>', 
@@ -1189,6 +1409,12 @@ CREATE TABLE col_dependent_expr_<table_name>(
     "PRAGMA journal_mode=WAL"
     "PRAGMA journal_mode=WAL",
     "PRAGMA journal_mode=DELETE",
+    "PRAGMA case_sensitive_like=<pragma_option>; SELECT 'G2'; ",
+],
+
+'<pragma_option>':[
+'OFF',
+'ON'
 ],
 
 
@@ -1307,14 +1533,14 @@ CREATE TABLE col_dependent_expr_<table_name>(
 
 '<create_indexed_by>':[
 ("""
-CREATE TABLE <table_name>(ProductID INTEGER PRIMARY KEY, ProductName TEXT, CategoryID INTEGER, Price REAL); 
-INSERT INTO <table_name>(ProductID, ProductName, CategoryID, Price) VALUES(random(), 'Chais', 1, 20.65); 
-INSERT INTO <table_name>(ProductID, ProductName, CategoryID, Price) VALUES(random(), 'Chang', 1, 19.20); 
-INSERT INTO <table_name>(ProductID, ProductName, CategoryID, Price) VALUES(random(), 'Aniseed Syrup', 2, 6.87); 
+CREATE TABLE <table_name>(ProductID INTEGER PRIMARY KEY, ProductName TEXT, CategoryID INTEGER, Price REAL, Weight INTEGER); 
+INSERT INTO <table_name>(ProductID, ProductName, CategoryID, Price, Weight) VALUES(random(), 'Chais', 1, 20.65, 5); 
+INSERT INTO <table_name>(ProductID, ProductName, CategoryID, Price, Weight) VALUES(random(), 'Chang', 1, 19.20, 3); 
+INSERT INTO <table_name>(ProductID, ProductName, CategoryID, Price, Weight) VALUES(random(), 'Aniseed Syrup', 2, 6.87, 8); 
 CREATE INDEX <index_name> ON <table_name>(Price);
 SELECT * FROM <table_name> INDEXED BY <index_name> WHERE Price > 10;
-""", opts(post=lambda t1,t2,t3,t4,t5,t6,t7,t8:create_indexed_by_handler())),
-],
+SELECT Weight*1.0/10 FROM <table_name>;
+""", opts(post=lambda t1,t2,t3,t4,t5,t6,t7,t8, t9:create_indexed_by_handler())),],
 
 '<create_index_stmt_1>':[
     '',
@@ -1359,12 +1585,6 @@ SELECT * FROM <table_name> INDEXED BY <index_name> WHERE Price > 10;
     "WHERE 'A' like 'a' ",
 ],
 
-# '<common_table_expression>':[
-#     '<table_name> AS ( <select_core> )',
-#     '<table_name> ( <column_name_list> )AS ( <select_core> )',
-#     '<table_name> ( <column_name_list> )AS NOT MATERIALIZED ( <select_core> )'
-# ],
-
 '<common_table_expression_middle>':[
     'AS',
     'AS NOT MATERIALIZED'
@@ -1395,14 +1615,14 @@ SELECT * FROM <table_name> INDEXED BY <index_name> WHERE Price > 10;
     "CREATE VIRTUAL TABLE mail USING fts5(sender, title, body, tokenize = 'porter ascii');"
 ],
 
-# '<rollback_stmt>': [
-# 'ROLLBACK',
-# 'ROLLBACK TRANSACTION',
-# 'ROLLBACK TRANSACTION TO <savepoint_name>',
-# 'ROLLBACK TRANSACTION TO SAVEPOINT <savepoint_name>',
-# 'ROLLBACK TO SAVEPOINT <savepoint_name>',
-# 'ROLLBACK TO <savepoint_name>'
-# ],
+'<rollback_stmt>': [
+'ROLLBACK',
+'ROLLBACK TRANSACTION',
+'ROLLBACK TRANSACTION TO <savepoint_name>',
+'ROLLBACK TRANSACTION TO SAVEPOINT <savepoint_name>',
+'ROLLBACK TO SAVEPOINT <savepoint_name>',
+'ROLLBACK TO <savepoint_name>'
+],
 
 '<savepoint_stmt>':[
     'SAVEPOINT <savepoint_name>'
@@ -1419,8 +1639,8 @@ SELECT * FROM <table_name> INDEXED BY <index_name> WHERE Price > 10;
 ],
 
 '<explain_stmt>':[
-    'EXPLAIN <select_core>',
-    'EXPLAIN  QUERY PLAN <select_core>'
+    'EXPLAIN SELECT abs(-1)',
+    'EXPLAIN  QUERY PLAN SELECT abs(-1)'
 ],
 
 '<analyze_stmt>': [
@@ -1434,11 +1654,11 @@ SELECT * FROM <table_name> INDEXED BY <index_name> WHERE Price > 10;
     ('',opts(pre=create_sick_index_handler)), # one index for a buntch of cols or a buntch of index
     ('',opts(pre=create_sick_insert_and_order_by_handler)), # insert a buntch of value and select order by
     ('',opts(pre=create_sick_database_handler)), # create a buntch of database
-    "PRAGMA synchronous=OFF", # https://www.sqlite.org/howtocorrupt.html
+    "PRAGMA synchronous=OFF",
     "PRAGMA user_version = integer", # change version may go crashed
     "BEGIN TRANSACTION; CREATE TABLE t_journal(a,b,c); INSERT INTO t_journal(a,b,c) VALUES(1,2,3); PRAGMA journal_mode=MEMORY; COMMIT;", # don't change journel mode in the middle of write transaction
     "BEGIN TRANSACTION; CREATE TABLE t_journal2(a,b,c); INSERT INTO t_journal2(a,b,c) VALUES(1,2,3); PRAGMA journal_mode=OFF; COMMIT;" # don't change journel mode in the middle of write transaction
-
+    "<pragma_stmt>",
 ],
 
 '<json_stmt>':[
@@ -1464,7 +1684,7 @@ SELECT * FROM <table_name> INDEXED BY <index_name> WHERE Price > 10;
 ],
 
 
-
+"<fixed_table_name>":["table"],
 "<filename>":[""],
 "<qualified_table_name>":[""],
 "<index_name>":[""],
@@ -1478,19 +1698,9 @@ SELECT * FROM <table_name> INDEXED BY <index_name> WHERE Price > 10;
 
 
 
-# grammar = extend_grammar(grammar, {
-#     "<assignment>": [("<identifier>=<expr>",
-#                       opts(post=lambda id, expr: define_id(id)))]
-# })
-
-
 #grammar = trim_grammar(grammar)
 assert is_valid_grammar(grammar)
-# cur_fuzzer = GeneratorGrammarFuzzer(grammar, start_symbol="<start>")
-# for _ in range(1000000):
-#     print(cur_fuzzer.fuzz())
+#cur_fuzzer = GeneratorGrammarFuzzer(grammar, start_symbol="<aggregate_scalar_funcs>")
+#for _ in range(30):
+#    print(cur_fuzzer.fuzz())
 
-# for table, values in VALID_TABLE.items():
-#     print(table, values)
-# Considerations:
-# statefullness, a valid command may be rejected because of database state

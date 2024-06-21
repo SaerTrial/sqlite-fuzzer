@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 import pandas as pd
+import argparse
+
 
 fill_color = '#ffe4c4'
 dot_color = '#4f7ead'
@@ -59,8 +61,30 @@ def aggregate_and_plot_cov():
 
 
 def main():
+    parser = argparse.ArgumentParser(description='SQL fuzzer and coverage plotter')
+    parser.add_argument('--cov-file', default="", type=str, help='plot on this specific cov file')
+
     plt.xlabel('# Input')
     plt.ylabel('% Coverage')
+
+    args = parser.parse_args()
+    
+    if args.cov_file:
+        plt.title('Branch coverage over time')
+        
+        assert os.path.exists(args.cov_file) 
+        
+        with open(args.cov_file, 'rb') as f:
+            cur = pickle.load(f)
+            plot(x=list(range(len(cur))), y=cur)
+
+
+        plt.savefig('single_branch_coverage.pdf')
+
+        exit(0)
+
+
+
     plt.title('Branch coverage over time (median and interval 80%)')
 
     arr = aggregate_and_plot_cov()
@@ -81,7 +105,7 @@ def main():
     input_scale = list(range(len(medians)))
     plt.plot(input_scale, medians, linestyle='-')
     plt.fill_between(input_scale, lows, uppers, color='orange', alpha=0.5)
-    plt.savefig('branch_coverage.pdf')
+    plt.savefig('branch_coverage_median.pdf')
 
 if __name__ == "__main__":
     main()

@@ -1,83 +1,108 @@
-from fuzzingbook.Grammars import is_valid_grammar,trim_grammar, opts, srange,Grammar
 from fuzzingbook.GeneratorGrammarFuzzer import GeneratorGrammarFuzzer,ProbabilisticGeneratorGrammarFuzzer
 import grammar
 import random 
-import string
-from copy import deepcopy
 
-class createTableFuzzer(GeneratorGrammarFuzzer):
+class InitialStageFuzzer(GeneratorGrammarFuzzer):
     def __init__(self):
-        super().__init__(grammar = grammar.grammar,start_symbol='<create_table_stmt>')
+        super().__init__(grammar = grammar.grammar,start_symbol='<initial_stage>')
 
-class pragmaFuzzer(ProbabilisticGeneratorGrammarFuzzer):
+class BusyFuzzer(ProbabilisticGeneratorGrammarFuzzer):
     def __init__(self):
-        super().__init__(grammar = grammar.grammar, start_symbol = '<pragma_stmt>')
-class insertFuzzer(GeneratorGrammarFuzzer):
+        super().__init__(grammar = grammar.grammar, start_symbol = '<busy_stage>')
+
+class PostStageFuzzer(GeneratorGrammarFuzzer):
     def __init__(self):
-        super().__init__(grammar = grammar.grammar, start_symbol = '<insert_stmt>')  
+        super().__init__(grammar = grammar.grammar, start_symbol = '<post_stage>')  
             
-
-class selectFuzzer(GeneratorGrammarFuzzer):
+class MISCFuzzer(GeneratorGrammarFuzzer):
     def __init__(self):
-        super().__init__(grammar = grammar.grammar,start_symbol='<select_core>')
+        super().__init__(grammar = grammar.grammar,start_symbol='<misc>')
 
-class expertFuzzer(selectFuzzer):
-    def fuzz():
-        s = super().fuzz()
-        if random.choice([True,False]):
-            return '.expert --verbose \n' + s 
-        else:
-            return '.expert --sample 70\n' + s
-        
-class generalFuzzer(GeneratorGrammarFuzzer):
+class BruteForceFuzzer(GeneratorGrammarFuzzer):
     def __init__(self):
-        super().__init__(grammar = grammar.grammar)
+        super().__init__(grammar = grammar.grammar,start_symbol='<brute_force_stage>')
 
-class testFuzzer(GeneratorGrammarFuzzer):
-    def __init__(self):
-        super().__init__(grammar = grammar.grammar, start_symbol = '<maybe_crash_stmt>')
+
 
 class Fuzzer:
     def __init__(self):
         # This function must not be changed.
         self.grammar = grammar.grammar
-        self.setup_fuzzer()
+        self.round = 0
         self.counter = 0
-    
+        self.stage = 'initial'
+        self.running_fuzzer = None
+
+        self.setup_fuzzer()
     def setup_fuzzer(self):
         # This function may be changed.
-        self.create_fuzzer = createTableFuzzer()
-        self.insert_fuzzer = insertFuzzer()
-        self.select_fuzzer = selectFuzzer()  # + [expertFuzzer() for _ in range(5)]
-        self.general_fuzzer = generalFuzzer()
-        # self.test_fuzzer  = testFuzzer()
-
+        random.seed()
+        self.initial_fuzzer = InitialStageFuzzer()
+        self.busy_fuzzer = BusyFuzzer()
+        self.post_fuzzer = PostStageFuzzer()
+        self.misc_fuzzer = MISCFuzzer()
+        self.brute_fuzzer = BruteForceFuzzer()
+        print(f"entering into round {self.round}!")
 
     def fuzz(self):
-        random.seed()
+        if self.round <= 3:
+            if self.counter < 3000:
+                if self.stage == 'initial':
+                    print("intial stage")
+                    self.stage = 'busy'
+                self.running_fuzzer = self.initial_fuzzer
+            elif self.counter >= 3000 and self.counter < 8000:
+                if self.stage == 'busy':
+                    print("busy stage")
+                    self.stage = 'post'
+                self.running_fuzzer = self.busy_fuzzer
+            elif self.counter >= 8000 and self.counter < 10000:
+                    if self.stage == 'post':
+                        print("post stage")
+                        self.stage = 'initial'
+                    self.running_fuzzer = self.post_fuzzer
+        elif self.round > 3:
+
+            if self.counter < 3000:
+                if self.stage == 'initial':
+                    print("brute force stage")  
+                    self.stage = 'brute'
+                self.running_fuzzer = self.brute_fuzzer
+            elif self.counter >= 3000:
+                if self.stage == 'brute':
+                    print("misc stage ")  
+                    self.stage = 'initial'  
+
+                self.running_fuzzer = self.misc_fuzzer
         
-        if self.counter < 10000:
-            cur_fuzzer = self.create_fuzzer
-        elif self.counter >= 10000 and self.counter < 30000:
-            cur_fuzzer = self.insert_fuzzer
-        elif self.counter >= 30000 and self.counter < 70000:
-            cur_fuzzer = self.select_fuzzer
-        else:
-            cur_fuzzer = self.general_fuzzer
+        self.counter += 1
 
-        self.counter = self.counter + 1
+        def reset_database_state():
+            print("reseting database state")
+            grammar.VALID_INDEX = []
+            grammar.VALID_TRIGGER = []
+            grammar.VALID_VIEW = []
+            grammar.VALID_TABLE = dict()
 
-        input = cur_fuzzer.fuzz() + '; '
+
+        if self.counter % 10000 == 0:
+            self.counter = 0
+            self.round += 1
+            self.round = self.round % 5
+            self.stage = 'initial'
+            # reset_database_state()
+            print(f"entering into round {self.round}!")
+    
+        input = self.running_fuzzer.fuzz() + '; '
         
         return input
-
 
     def fuzz_one_input(self) -> str:
-       
-        input = self.fuzz()
-        
+        try:
+        	input = self.fuzz()
+        except:
+        	input = ";"
+
         return input
 
-# fuzzer = Fuzzer()
-# for _ in range(10000):
-#     print(fuzzer.fuzz())
+
