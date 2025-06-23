@@ -1,7 +1,7 @@
 This is a fuzz testing project of "security testing" course taken by me in University. I did learn a lot throughout this project and may find it more useful to share this project out, giving you more insights on fuzz testing. Beware that this project focuses on memory corruption rather than logic vulnerabities, which I may work a bit on in near future. 
 
 ## Project description
-In this project, one has to build a grammar-based blockbox fuzzer to test SQLite.
+In this project, one has to build a grammar-based blackbox fuzzer to test SQLite.
 
 The Dockerfile is provided to lift up environment for fuzzing. However, running a fuzzer in the docker was a terrible experience to me and I suggest a local approach. Of course, I will detail both of ways to do fuzz testing in the preceeding section.
 
